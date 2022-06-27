@@ -5,15 +5,15 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 # Import data (Make sure to parse dates. Consider setting index column to 'date'.)
-df = pd.read_csv('fcc-forum-pageviews.csv'  , parse_dates=['date'], index_col=['date'] )
-
+df = pd.read_csv('fcc-forum-pageviews.csv')
+df["date"] = pd.to_datetime(df["date"])
+df = df.set_index('date')
 # Clean data
-df =  df.loc[(df["value"] >= df["value"].quantile(0.025))& (df["value"] <= df["value"].quantile(0.975))]
- 
+df =  df.loc[(df["value"] >= df["value"].quantile(0.025))& (df["value"] <= df["value"].quantile(0.975))].astype(int)
 
 def draw_line_plot():
     # Draw line plot
-    dates = pd.to_datetime(df.index)
+
     fig , ax = plt.subplots()
     ax = sns.lineplot(data=df, x="date", y="value")
 
@@ -28,12 +28,20 @@ def draw_line_plot():
     fig.savefig('line_plot.png')
     return fig
 
+
+
+
+
+
+
+
 def draw_bar_plot():
-    df['Date']= df.index.month
-    df['Years'] =df.index.year
-    df['Months'] = df.index.month_name()
+    df_b = df.copy()
+    df_b['Date']= df_b.index.month
+    df_b['Years'] =df_b.index.year
+    df_b['Months'] = df_b.index.month_name()
     # Copy and modify data for monthly bar plot
-    df_bar = df.groupby([ 'Date' ,'Years' , 'Months'  ])['value'].agg(['mean']).reset_index()
+    df_bar = df_b.groupby([ 'Date' ,'Years' , 'Months'  ])['value'].agg(['mean']).reset_index()
     # Draw bar plot
     fig, ax = plt.subplots()
     ax = sns.barplot(x="Years", y="mean", hue= 'Months' , data=df_bar )
@@ -43,13 +51,15 @@ def draw_bar_plot():
         title ='Months'
     )
 
-
-
-
-
     # Save image and return fig (don't change this part)
     fig.savefig('bar_plot.png')
     return fig
+
+
+
+
+
+
 
 
 def draw_box_plot():
@@ -60,7 +70,14 @@ def draw_box_plot():
     df_box['month'] = [d.strftime('%b') for d in df_box.date]
 
     # Draw box plots (using Seaborn)
-
+    df_box['month_num'] = [d.month for d in df_box.date]
+    df_box.sort_values(['month_num'], inplace=True)
+    
+    fig, ax = plt.subplots(1,2, figsize=(12,4))
+    ax = sns.boxplot(x="year", y="value", data=df_box ,ax=ax[0])
+    ax.set(xlabel="Year",ylabel="Page Views",title ='Year-wise Box Plot (Trend)')
+    ax = sns.boxplot(x="month", y="value", data=df_box )
+    ax.set(xlabel="Month",ylabel="Page Views",title ='Month-wise Box Plot (Seasonality)')
 
 
 
@@ -68,3 +85,4 @@ def draw_box_plot():
     # Save image and return fig (don't change this part)
     fig.savefig('box_plot.png')
     return fig
+
